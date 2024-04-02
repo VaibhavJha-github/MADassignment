@@ -9,7 +9,6 @@ export const AddNewTodo = () => {
     const [description, setDescription] = useState("");
 
     const handleSave = () => {
-        // Add your save logic here
         console.log("Title:", title);
         console.log("Description:", description);
         navigation.goBack();
