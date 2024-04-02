@@ -1,43 +1,30 @@
-import React, { useState } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Pressable } from 'react-native';
+import { StyleSheet, Text, View, Button, Pressable } from 'react-native';
 
+import { Home } from "./screens/Home";
+import { AddNewTodo } from "./screens/AddNewTodo";
+
+const Stack = createStackNavigator();
 let ct = 0;
 
 export default function App() {
-  const todolist = ["Buy Whey", "Buy Something Unnecessary", "Buy Creatine"];
-  const getButStyle = ({pressed}) => 
-    pressed ? [styles.pressed, styles.button] : [styles.button];
   return (
-    <View style={styles.container}>
-      <View style={styles.topContent}>
-        <Text style={styles.title}>My Todo List</Text>
-        <Text style={styles.title2}>_______________________________________________</Text>
-      </View>
-
-      <View style={styles.middleContent}>
-        {todolist.map((todo, index) => (
-          <Text key={index} style={styles.todoItem}>
-            {todo}
-          </Text>
-        ))}
-      </View>
+    <View style={styles.container}>    
+      <NavigationContainer>
+          <Stack.Navigator>
+            <Stack.Screen name="Home" component={Home}/>
+            <Stack.Screen name="AddNewTodo" component={AddNewTodo}/>
+          </Stack.Navigator>
+      </NavigationContainer>
+     
       
-      <View style={styles.bottomContent}>
-        <Text style={styles.title2}>_______________________________________________</Text>
-        <Pressable
-          style={getButStyle}
-          onPress={() => {
-            ct++;
-            console.log('I am clicked ${ct} times');
-          }}
-        >
-          <Text style={styles.buttonText}>Add New Todo</Text>
-        </Pressable>
-      </View>
 
       <StatusBar style="auto" />
     </View>
+    
   );
 }
 
