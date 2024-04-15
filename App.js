@@ -3,9 +3,9 @@ import { createStackNavigator } from '@react-navigation/stack';
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, Button, Pressable } from 'react-native';
-
-import { Home } from "./screens/Home";
-import { AddNewTodo } from "./screens/AddNewTodo";
+import { loadData, saveData } from './src/datamodel/mydata';
+import { Home } from "./src/screens/Home";
+import { AddNewTodo } from "./src/screens/AddNewTodo";
 
 const Stack = createStackNavigator();
 let ct = 0;
