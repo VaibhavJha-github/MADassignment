@@ -1,60 +1,63 @@
 import React, { useState, useEffect } from "react";
 import { StyleSheet, Text, View, Pressable, FlatList, SafeAreaView, Button, TextInput, ScrollView, Modal} from 'react-native';
 import { Ionicons, AntDesign } from "@expo/vector-icons";
-import { loadData, saveData } from '../datamodel/mydata';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { loadData, saveData, deleteTask, key } from '../datamodel/mydata';
 import { useNavigation, useFocusEffect, useRoute } from "@react-navigation/native"; 
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
-import { deleteTask } from '../datamodel/mydata';
 
-
-
-const TaskItem = ({ task }) => {
-  const { title, description } = task;
-  const [expanded, setExpanded] = useState(false);
+// TaskItem Component to display each task
+const TaskItem = ({ task, onUpdate, onDelete }) => {
+  const { id, title, description, completed } = task;
+  const [expanded, setExpanded] = useState(false); // State to track expansion
 
   const toggleExpansion = () => {
     setExpanded(!expanded);
   };
 
   const handleCompleted = () => {
-    // Perform action for completing the task here
-    console.log("Task completed:", title);
+    const updatedTask = { ...task, completed: true };
+    onUpdate(updatedTask); // Update task as completed
   };
 
   const handleDelete = () => {
-    deleteTask(task); // Call deleteTask function from your data model
+    onDelete(id); // Delete task from storage and list of tasks
   };
-
 
   return (
     <View style={[styles.taskItemContainer, { backgroundColor: 'lightblue' }]}>
-    <Pressable onPress={toggleExpansion} style={styles.taskHeader}>
-      <Text style={styles.taskItemTitle}>{title}</Text>
-      <Ionicons name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'} size={24} color="black" />
-    </Pressable>
-    {expanded && (
-      <View style={styles.taskDetails}>
-        <Text style={styles.taskItemDescription}>{description}</Text>
-        <View style={styles.buttonContainer}>
-          <Pressable style={styles.button} onPress={handleCompleted}>
-            <Ionicons name="cloud-done-outline" size={24} color="black" />
-          </Pressable>
-          <Pressable style={styles.button} onPress={handleDelete}>
-            <Ionicons name="trash-outline" size={24} color="black" />
-          </Pressable>
+      <Pressable onPress={toggleExpansion} style={styles.taskHeader}>
+        <Text style={styles.taskItemTitle}>
+          {title} {completed ? '(Done)' : ''}
+        </Text>
+        <Ionicons name={expanded ? 'chevron-up-outline' : 'chevron-down-outline'} size={24} color="black" />
+      </Pressable>
+      {expanded && (
+        <View style={styles.taskDetails}>
+          <Text style={styles.taskItemDescription}>{description}</Text>
+          <View style={styles.buttonContainer}>
+            {!completed && (
+              <Pressable style={styles.button} onPress={handleCompleted}>
+                <Ionicons name="cloud-done" size={24} color="green" />
+              </Pressable>
+            )}
+            <Pressable style={[styles.button, completed && styles.centeredButton]} onPress={handleDelete}>
+              <Ionicons name="trash-outline" size={24} color="red" />
+            </Pressable>
+          </View>
         </View>
-      </View>
-    )}
-  </View>
-);
+      )}
+    </View>
+  );
 };
-
+// Home component to manage task list and actions
 export const Home = () => {
-  const [tasks, setTasks] = useState([]);
-  const [showPopup, setShowPopup] = useState(false);
+  const [tasks, setTasks] = useState([]); // State to manage tasks
+  const [showPopup, setShowPopup] = useState(false); // State for popup message
 
+  // Function to load tasks from AsyncStorage
   const loadTasks = async () => {
     const data = await loadData();
     if (data && data.length > 0) {
@@ -72,14 +75,43 @@ export const Home = () => {
 
   const navigation = useNavigation();
   const gotoDetailHandler = () => {
-    navigation.navigate('AddNewTodo');
+    navigation.navigate('AddNewTodo'); // Navigate to AddNewTodo screen
   };
 
+  // Function to save a new task
   const saveTask = async (task) => {
-    await saveData(task);
+    await saveData({ ...task, completed: false }); // Ensure new tasks are marked as not finished
     loadTasks(); // Refresh tasks after saving
     setShowPopup(true); // Show the pop-up message
   };
+
+  const handleUpdateTask = async (updatedTask) => {
+    try {
+      let existingData = await loadData(); // Load existing tasks
+      existingData = existingData.map(task => {
+        if (task.id === updatedTask.id) {
+          // Update the task if its ID matches the updated task ID
+          return updatedTask;
+        }
+        return task;
+      });
+      await AsyncStorage.setItem(key, JSON.stringify(existingData)); // Save updated tasks
+      setTasks(existingData); // Update state with updated tasks
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
+  };
+  // Function to handle deleting a task
+  const handleDeleteTask = async (taskId) => {
+    try {
+      await deleteTask(taskId);
+      const updatedTasks = await loadData(); // Load updated tasks after deletion
+      setTasks(updatedTasks); // Update state with updated tasks
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -90,30 +122,23 @@ export const Home = () => {
 
       <FlatList
         data={tasks}
-        renderItem={({ item }) => <TaskItem task={item} />}
-        keyExtractor={(item, index) => index.toString()}
+        renderItem={({ item }) => (
+          <TaskItem task={item} onUpdate={handleUpdateTask} onDelete={handleDeleteTask} />
+        )}
+        keyExtractor={(item) => item.id} // Use item.id directly as the key
         contentContainerStyle={styles.taskListContainer}
       />
+
 
       <View style={styles.bottomContent}>
         <Text style={styles.titleDivider}>_________________________________________</Text>
         <Pressable style={styles.addButton} onPress={gotoDetailHandler}>
           <View style={styles.addButtonContent}>
             <AntDesign name="pluscircle" size={24} color="green" />
-            <Text style={styles.addButtonText}>Add New Todo</Text>
+            <Text style={[styles.addButtonText, { color: 'black', marginLeft: 5 }]}>Add New Todo</Text>
           </View>
         </Pressable>
       </View>
-
-      {/* Pop-up message */}
-      <Modal visible={showPopup} animationType="slide" transparent={true}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalText}>Todo Added Successfully</Text>
-            <Button title="OK" onPress={() => setShowPopup(false)} />
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 };
@@ -157,7 +182,7 @@ const styles = StyleSheet.create({
   },
   taskListContainer: {
     flexGrow: 1,
-    alignItems: 'center',
+    
     paddingVertical: 10,
   },
   taskItemContainer: {
@@ -167,6 +192,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: 'lightblue',
   },
+  
   taskHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -196,7 +222,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'lightgray',
     padding: 5,
     borderRadius: 3,
+    marginLeft: 70, 
+    marginRight: 70, 
   },
+  centeredButton: {
+    marginLeft: 'auto', 
+    marginRight: 'auto', 
+  },
+  
   buttonText: {
     marginLeft: 5,
   },

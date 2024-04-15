@@ -1,41 +1,54 @@
 import React, { useState } from "react";
-import { StyleSheet, Text, View, Button, TextInput } from "react-native";
+import { StyleSheet, Text, View, Button, TextInput, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { saveData } from "../datamodel/mydata";
 import { useNavigation } from "@react-navigation/native";
 
+// AddNewTodo component for adding a new todo item
 export const AddNewTodo = () => {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState(""); // State for title input
+  const [description, setDescription] = useState(""); // State for description input
   const [isSaveDisabled, setIsSaveDisabled] = useState(true); // State to track save button disabled state
 
+  // Handler for title input change
   const titleChangeHandler = (val) => {
     setTitle(val);
     checkSaveButtonState(val, description); // Check button state on title change
   };
 
+  // Handler for description input change
   const descriptionChangeHandler = (val) => {
     setDescription(val);
     checkSaveButtonState(title, val); // Check button state on description change
   };
 
+  // Function to check and update save button state
   const checkSaveButtonState = (title, description) => {
     const isEmpty = !title.trim() || !description.trim();
     setIsSaveDisabled(isEmpty);
   };
 
-  const submitHandler = () => {
-    saveData({ title, description });
-    setTitle("");
-    setDescription("");
-    setIsSaveDisabled(true); // Disable save button after saving
+  // Handler for submitting a new todo item
+  const submitHandler = async () => {
+    if (!isSaveDisabled) {
+      await saveData({ title, description });
+      setTitle("");
+      setDescription("");
+      setIsSaveDisabled(true); // Disable save button after saving
+      showAlert(); // Show the pop-up message
+    }
+  };
+  // Function to show an alert message
+  const showAlert = () => {
+    Alert.alert("Todo Added Successfully", "", [{ text: "OK", onPress: () => console.log("OK Pressed") }]);
   };
 
-  const navigation = useNavigation();
+  const navigation = useNavigation(); // Navigation hook for navigation actions
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Add New Todo</Text>
+      <Text style={styles.titleDivider}>_________________________________________</Text>
       <Text style={styles.label}>Title:</Text>
       <TextInput
         style={styles.input}
@@ -55,7 +68,7 @@ export const AddNewTodo = () => {
         <View style={styles.button}>
           <Ionicons name="backspace-sharp" size={24} color="green" />
           <Button
-            title="Cancel"
+            title="Back"
             onPress={() => navigation.goBack()}
             color="black"
           />
@@ -121,4 +134,3 @@ const styles = StyleSheet.create({
 });
 
 export default AddNewTodo;
-
